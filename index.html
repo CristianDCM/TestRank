@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Ejercicio Python Interactivo - Simplificado</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #editor { height: 300px; width: 100%; border: 1px solid #ccc; margin-bottom: 10px; padding: 10px; font-family: monospace; }
+    #output { background: #f4f4f4; border: 1px solid #ccc; padding: 10px; min-height: 50px; white-space: pre-wrap; }
+    button { padding: 10px 20px; font-size: 16px; margin-right: 5px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h2>Ejercicio de Python - Suma dos números</h2>
+  <p>
+    Escribe una función que lea dos números (cada uno en una línea) y muestre su suma.
+  </p>
+  
+  <textarea id="editor">// Escribe tu código Python aquí
+def suma():
+    a = int(input())
+    b = int(input())
+    print(a + b)
+
+suma()
+  </textarea>
+  <br>
+  <button id="run">Ejecutar Código</button>
+  <button id="test">Evaluar Pruebas</button>
+  
+  <h3>Salida:</h3>
+  <div id="output"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/pyodide@0.22.0/pyodide.js"></script>
+  <script>
+    let pyodideReadyPromise = loadPyodide();
+
+    // Función para evaluar un caso de prueba
+    async function evaluarTest(userCode, testInput, expectedOutput) {
+      const pyodide = await pyodideReadyPromise;
+      const testCode = `
+import sys
+from io import StringIO
+# Redirigir entrada
+sys.stdin = StringIO(${JSON.stringify(testInput)})
+from contextlib import redirect_stdout
+import io
+f = io.StringIO()
+with redirect_stdout(f):
+${userCode.split('\n').map(line => "    " + line).join('\n')}
+output = f.getvalue()
+`;
+      pyodide.runPython(testCode);
+      return pyodide.runPython('output');
+    }
+
+    // Botón de ejecución libre
+    document.getElementById('run').addEventListener('click', async () => {
+      const pyodide = await pyodideReadyPromise;
+      const code = document.getElementById('editor').value;
+      try {
+        let result = pyodide.runPython(code);
+        document.getElementById('output').textContent = result || '';
+      } catch (error) {
+        document.getElementById('output').textContent = 'Error: ' + error;
+      }
+    });
+
+    // Botón de evaluación con casos de prueba
+    document.getElementById('test').addEventListener('click', async () => {
+      const userCode = document.getElementById('editor').value;
+      const testCases = [
+        { input: "5\n3\n", expected: "8\n" },
+        { input: "2\n4\n", expected: "6\n" }
+      ];
+      let resultados = "";
+      for (let i = 0; i < testCases.length; i++) {
+        const test = testCases[i];
+        try {
+          let output = await evaluarTest(userCode, test.input, test.expected);
+          let passed = (output === test.expected);
+          resultados += `Test ${i+1}: ${passed ? "Aprobado" : "Fallido"}\n`;
+          if (!passed) {
+            resultados += `  Entrada: ${test.input}\n  Esperado: ${test.expected}\n  Obtenido: ${output}\n`;
+          }
+        } catch (error) {
+          resultados += `Test ${i+1}: Error al ejecutar: ${error}\n`;
+        }
+      }
+      document.getElementById('output').textContent = resultados;
+    });
+  </script>
+</body>
+</html>
